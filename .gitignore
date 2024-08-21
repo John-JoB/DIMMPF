@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+data/
+results/
+Regime_switching_test.ipynb
+
 # Distribution / packaging
 .Python
 build/
