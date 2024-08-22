@@ -9,6 +9,7 @@ __pycache__/
 data/
 results/
 Regime_switching_test.ipynb
+hyperparamopt.py
 
 # Distribution / packaging
 .Python

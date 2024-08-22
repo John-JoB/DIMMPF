@@ -1,16 +1,11 @@
 import torch as pt
 from dpf_rs.simulation import Differentiable_Particle_Filter
-from tqdm import tqdm
 from typing import Iterable
-from matplotlib import pyplot as plt
 import numpy as np
 from copy import deepcopy
 from dpf_rs.loss import Loss, Compound_Loss, Magnitude_Loss
-from dpf_rs import model
-from dpf_rs import loss as losses
 from dpf_rs import results
 import time
-from dpf_rs.utils import fix_rng
 
 
 def _test(

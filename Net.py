@@ -2,7 +2,7 @@ from typing import Callable
 import torch as pt
 from dpf_rs.model import *
 from numpy import sqrt
-from dpf_rs.utils import nd_select, normalise_log_quantity, batched_select         
+from dpf_rs.utils import batched_select         
 
 class Markov_Switching(pt.nn.Module):
     def __init__(self, n_models:int, switching_diag: float, switching_diag_1: float, dyn = 'Boot', device:str ='cuda'):

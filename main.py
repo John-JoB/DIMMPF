@@ -3,7 +3,7 @@ from Net import PF, RLPF, Redefined_RLPF, Markov_Switching, Polya_Switching, NN_
 from dpf_rs.model import Simulated_Object, State_Space_Dataset
 from trainingRS import test, e2e_train, train_s2s
 from dpf_rs.simulation import Differentiable_Particle_Filter
-from simulationRS import MADPF, IMM_Particle_Filter
+from simulationRS import IMM_Particle_Filter
 from dpf_rs.resampling import Soft_Resampler_Systematic, OT_Resampler
 from dpf_rs.loss import Supervised_L2_Loss, Magnitude_Loss
 from dpf_rs.results import Log_Likelihood_Factors
@@ -17,18 +17,17 @@ def main():
     parser = argparse.ArgumentParser(description='Testing')
     parser.add_argument('--device', dest='device', type=str, default='cuda', choices=['cuda', 'cpu'], help='device to use')
     parser.add_argument('--alg', dest='alg', type=str, default='DIMMPF', choices=['RLPF', 'LSTM', 'Transformer', 'DIMMPF', 'DIMMPF-OT', 'DIMMPF-N', 'IMMPF'], help='algorithm to use')
-    parser.add_argument('--train_alg', dest='train_alg', type=str, default='Lambda', choices=['Lambda', 'MSE'], help='training method to use, only relavent for the RSDBPF and RLPF')
     parser.add_argument('--experiment', dest='experiment', type=str, default='Markov', choices=['Markov', 'Polya', 'Exchange', 'Erlang'], help='Experiment to run')
     parser.add_argument('--lr', dest='lr', type=float, default=0.05, help='Initial max learning rate')
     parser.add_argument('--w_decay', dest='w_decay', type=float, default=0.05, help='Weight decay strength')
     parser.add_argument('--lr_steps', dest='lr_steps', nargs='+', type=int, default=[10, 20, 30, 40], help='steps to decrease the lr')
     parser.add_argument('--lr_gamma', dest='lr_gamma', type=float, default=0.5, help='learning rate decay per step')
-    parser.add_argument('--clip', dest='clip', type=float, default=pt.inf,  help='Value to clip the gradient at')
+    parser.add_argument('--clip', dest='clip', type=float, default=10,  help='Value to clip the gradient at')
     parser.add_argument('--lamb', dest='lamb', type=float, default=0.02, help='Ratio of ELBO to MSE loss')
     parser.add_argument('--store_loc', dest='store_loc', type=str, default='temp', help='File in the results folder to store the results dictionary')
     parser.add_argument('--n_runs', dest='n_runs', type=int, default=20, help='Number of runs to average')
-    parser.add_argument('--layers', dest='layers', type=int, default=2, help='Number of fully connected layers in neural networks')
-    parser.add_argument('--hid_size', dest='hidden_size', type=int, default=8, help='Number of nodes in hidden layers')
+    parser.add_argument('--layers', dest='layers', type=int, default=3, help='Number of fully connected layers in neural networks')
+    parser.add_argument('--hid_size', dest='hidden_size', type=int, default=11, help='Number of nodes in hidden layers')
     parser.add_argument('--data_dir', dest='data_dir', type=str, default='temp', help='Data directory')
     parser.add_argument('--epochs', dest='epochs', type=int, default=50, help='Number of epochs to train for')
     
@@ -76,10 +75,8 @@ def main():
                 opt_sch = pt.optim.lr_scheduler.MultiStepLR(opt, args.lr_steps, args.lr_gamma)
             else:
                 opt_sch = None
-            if args.train_alg == 'Lambda':
-                DPF_ELBO = Differentiable_Particle_Filter(re_model, 200, Soft_Resampler_Systematic(1, 0.6), 200, args.device)
-                return e2e_train(DPF, DPF_ELBO, opt, Supervised_L2_Loss(function=lambda x : x[:, :, 0].unsqueeze(2)), 50, data, None, [100, -1, -1], [0.5, 0.25, 0.25], args.epochs, 10, opt_sch, True, args.clip, args.lamb)
-            return e2e_train(DPF, opt, Supervised_L2_Loss(function=lambda x : x[:, :, 0].unsqueeze(2)), 50, data, None, [100, -1, -1], [0.5, 0.25, 0.25], args.epochs, 10, opt_sch, True, args.clip)
+            DPF_ELBO = Differentiable_Particle_Filter(re_model, 200, Soft_Resampler_Systematic(1, 0.6), 200, args.device)
+            return e2e_train(DPF, DPF_ELBO, opt, Supervised_L2_Loss(function=lambda x : x[:, :, 0].unsqueeze(2)), 50, data, None, [100, -1, -1], [0.5, 0.25, 0.25], args.epochs, 10, opt_sch, True, args.clip, args.lamb)
         
 
     if args.alg == 'DIMMPF' or args.alg == 'DIMMPF-OT' or args.alg == 'DIMMPF-N':
@@ -130,11 +127,9 @@ def main():
     def run():
         nonlocal create_data
         nonlocal train_test
-        fix_rng(1)
-        if not args.experiment == 'exchange':
-            create_data()
+        create_data()
         return train_test()
-        
+    fix_rng(1)    
     dic = aggregate_runs(run, args.n_runs, ['loss', 'per_step_loss', 'train_time', 'test_time'])
     print(dic)
     with open(f'./results/{args.store_loc}.pickle', 'wb') as handle:
