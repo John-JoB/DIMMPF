@@ -85,8 +85,10 @@ def main():
             data = State_Space_Dataset(f'./data/{args.data_dir}', lazy = False, device=args.device, num_workers=0)
             model = DIMMPF(8, NN_Switching(8, 8, 'Boot', args.device, 0), 1, args.layers, args.hidden_size, 'Boot', args.device)
     
-            if args.alg =='DIMM-OT':
-                DPF = IMM_Particle_Filter(model, 200, OT_Resampler(1, 0.001, 100, 0.9), 200, args.device, IMMtype='OT')
+            if args.alg =='DIMMPF-OT':
+                DPF = IMM_Particle_Filter(model, 80, OT_Resampler(1, 0.001, 100, 0.9), 80, args.device, IMMtype='OT')
+            elif args.alg == 'DIMMPF-N':
+                DPF = IMM_Particle_Filter(model, 200, Soft_Resampler_Systematic(1, 0), 200, args.device, IMMtype='normal')
             else:
                 DPF = IMM_Particle_Filter(model, 200, Soft_Resampler_Systematic(1, 0), 200, args.device, IMMtype='new')
 
@@ -98,13 +100,12 @@ def main():
                 opt_sch = None
          
             re_model = DIMMPF_redefined(model)
-            if args.alg =='DIMM-OT':
-                DPF_ELBO = IMM_Particle_Filter(re_model, 200, OT_Resampler(1, 0.001, 100, 0.9), 200, args.device, IMMtype='OT')
+            if args.alg =='DIMMPF-OT':
+                DPF_ELBO = IMM_Particle_Filter(re_model, 80, OT_Resampler(1, 0.001, 100, 0.9), 80, args.device, IMMtype='OT')
+            elif args.alg == 'DIMMPF-N':
+                DPF_ELBO = IMM_Particle_Filter(re_model, 200, Soft_Resampler_Systematic(1, 0), 200, args.device, IMMtype='normal')
             else:
-                if args.alg == 'DIMMPF-N':
-                    DPF_ELBO = IMM_Particle_Filter(re_model, 200, Soft_Resampler_Systematic(1, 0), 200, args.device, IMMtype='normal')
-                else:
-                    DPF_ELBO = IMM_Particle_Filter(re_model, 200, Soft_Resampler_Systematic(1, 0), 200, args.device, IMMtype='new')
+                DPF_ELBO = IMM_Particle_Filter(re_model, 200, Soft_Resampler_Systematic(1, 0), 200, args.device, IMMtype='new')
             return e2e_train(DPF, DPF_ELBO, opt, Supervised_L2_Loss(function=lambda x : x[:, :, 0].unsqueeze(2)), 50, data, None, [100, -1, -1], [0.5, 0.25, 0.25], args.epochs, 10, opt_sch, True, args.clip, True, args.lamb)
         
 
